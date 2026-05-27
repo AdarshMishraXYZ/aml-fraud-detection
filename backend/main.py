@@ -9,8 +9,15 @@ from api.routes import simulator
 from api.routes import auth_routes
 from fastapi import Request
 from fastapi.responses import JSONResponse
+from database import engine, Base
+from models.transaction import TransactionDB
+from models.alert import AlertDB
 
 app = FastAPI()
+
+@app.on_event("startup")
+async def startup():
+    Base.metadata.create_all(bind=engine)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
