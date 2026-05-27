@@ -1,4 +1,3 @@
-cat << 'EOF' > README.md
 ---
 title: aml-fraud-api
 emoji: 🛡️
@@ -10,4 +9,3 @@ pinned: false
 
 # AML Fraud Detection API
 FastAPI backend deployed on Hugging Face Spaces.
-EOF
