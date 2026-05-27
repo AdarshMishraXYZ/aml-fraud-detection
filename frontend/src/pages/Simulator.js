@@ -20,7 +20,7 @@ if (role !== 'admin') {
   const runSimulation = () => {
     setRunning(true);
     setResults(null);
-    fetch(`http://127.0.0.1:8000/api/simulator/run?total=${total}&fraud_ratio=${fraudRatio}`, {
+    fetch(`   https://aml-fraud-detection-1.onrender.com/api/simulator/run?total=${total}&fraud_ratio=${fraudRatio}`, {
       method: 'POST'
     })
     .then(res => res.json())

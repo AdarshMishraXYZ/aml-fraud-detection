@@ -5,7 +5,7 @@ function ReportPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/graph/full-report')
+    fetch('   https://aml-fraud-detection-1.onrender.com/api/graph/full-report')
       .then(res => res.json())
       .then(data => {
         setReport(data);

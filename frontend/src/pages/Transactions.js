@@ -13,7 +13,7 @@ function Transactions() {
   const perPage = 10;
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/transactions')
+    fetch('   https://aml-fraud-detection-1.onrender.com/api/transactions')
       .then(res => res.json())
       .then(data => {
         setTransactions(data.reverse());
@@ -38,7 +38,7 @@ function Transactions() {
   }, [search, filter, transactions]);
 
   const submitTransaction = () => {
-    fetch('http://127.0.0.1:8000/api/transactions', {
+    fetch('   https://aml-fraud-detection-1.onrender.com/api/transactions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -49,7 +49,7 @@ function Transactions() {
     })
     .then(res => res.json())
     .then(() => {
-      fetch('http://127.0.0.1:8000/api/transactions')
+      fetch('   https://aml-fraud-detection-1.onrender.com/api/transactions')
         .then(res => res.json())
         .then(data => {
           setTransactions(data.reverse());
@@ -73,7 +73,7 @@ function Transactions() {
   return (
     <div className="page">
       <h1>Transactions</h1>
-      <a href="http://127.0.0.1:8000/api/transactions/export/csv"
+      <a href="   https://aml-fraud-detection-1.onrender.com/api/transactions/export/csv"
         style={{padding:'8px 15px', background:'#3fb950', color:'white', borderRadius:'6px', textDecoration:'none', marginBottom:'20px', display:'inline-block', fontSize:'14px'}}>
         📥 Export CSV
       </a>

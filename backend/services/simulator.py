@@ -67,7 +67,7 @@ async def run_simulation(total: int = 50, fraud_ratio: float = 0.3):
 
             try:
                 await client.post(
-                    "http://127.0.0.1:8000/api/transactions",
+                    "   https://aml-fraud-detection-1.onrender.com/api/transactions",
                     json=transaction,
                     timeout=10
                 )

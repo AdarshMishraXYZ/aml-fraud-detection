@@ -9,7 +9,7 @@ function Alerts() {
   const perPage = 10;
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/alerts')
+    fetch('   https://aml-fraud-detection-1.onrender.com/api/alerts')
       .then(res => res.json())
       .then(data => {
         setAlerts(data.reverse());

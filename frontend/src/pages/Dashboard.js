@@ -10,11 +10,11 @@ function Dashboard() {
 
   useEffect(() => {
     fetchData();
-    fetch('http://127.0.0.1:8000/health')
+    fetch('   https://aml-fraud-detection-1.onrender.com/health')
   .then(res => res.json())
   .then(() => setApiStatus('online'))
   .catch(() => setApiStatus('offline'));
-    ws.current = new WebSocket('ws://127.0.0.1:8000/ws');
+    ws.current = new WebSocket('   https://aml-fraud-detection-1.onrender.com');
     ws.current.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === 'alert') {
@@ -26,10 +26,10 @@ function Dashboard() {
   }, []);
 
   const fetchData = () => {
-    fetch('http://127.0.0.1:8000/api/transactions')
+    fetch('   https://aml-fraud-detection-1.onrender.com/api/transactions')
       .then(res => res.json())
       .then(data => setTransactions(data));
-    fetch('http://127.0.0.1:8000/api/alerts')
+    fetch('   https://aml-fraud-detection-1.onrender.com/api/alerts')
       .then(res => res.json())
       .then(data => setAlerts(data));
   };
