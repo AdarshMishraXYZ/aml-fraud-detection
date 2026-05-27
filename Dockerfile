@@ -2,19 +2,18 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Copy requirements from your backend folder to the container root
+# 1. Copy the requirements file directly from the backend folder to the current directory (/app)
 COPY backend/requirements.txt .
 
-# Upgrade pip and install requirements globally along with uvicorn explicitly
+# 2. Upgrade pip and install all modules cleanly inside the container environment
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir uvicorn
+    pip install --no-cache-dir -r requirements.txt
 
-# Copy the actual application files from the backend folder into the container
+# 3. Copy everything else from the backend folder directly into the root of /app
 COPY backend/ .
 
-# Expose the default Hugging Face port
+# Expose Hugging Face's default expected port
 EXPOSE 7860
 
-# Run uvicorn directly from the python module execution path to prevent path issues
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
+# Execute uvicorn cleanly from the main app context
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
