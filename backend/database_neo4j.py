@@ -1,0 +1,95 @@
+from neo4j import GraphDatabase
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+URI = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
+USERNAME = os.getenv("NEO4J_USERNAME", "neo4j")
+PASSWORD = os.getenv("NEO4J_PASSWORD", "adarsh2005")
+
+driver = GraphDatabase.driver(URI, auth=(USERNAME, PASSWORD))
+
+def get_neo4j_session():
+    return driver.session()
+
+def add_transaction_to_graph(sender: str, receiver: str, amount: float, status: str):
+    with driver.session() as session:
+        session.run("""
+            MERGE (s:Person {name: $sender})
+            MERGE (r:Person {name: $receiver})
+            CREATE (s)-[:SENT {amount: $amount, status: $status}]->(r)
+        """, sender=sender, receiver=receiver, amount=amount, status=status)
+
+def get_fraud_network(name: str):
+    with driver.session() as session:
+        result = session.run("""
+            MATCH (p:Person {name: $name})-[t:SENT]->(r:Person)
+            RETURN p.name as sender, r.name as receiver, 
+                   t.amount as amount, t.status as status
+        """, name=name)
+        return [record.data() for record in result]
+
+def detect_circular_transactions():
+    with driver.session() as session:
+        result = session.run("""
+            MATCH (a:Person)-[t1:SENT]->(b:Person)-[t2:SENT]->(c:Person)-[t3:SENT]->(a)
+            WHERE t1.amount >= 10000 
+            AND t2.amount >= 10000 
+            AND t3.amount >= 10000
+            AND (t1.status = 'flagged' OR t1.status = 'suspicious')
+            AND (t2.status = 'flagged' OR t2.status = 'suspicious')
+            AND (t3.status = 'flagged' OR t3.status = 'suspicious')
+            RETURN a.name as person1, b.name as person2, c.name as person3,
+                   t1.amount as amount1, t2.amount as amount2, t3.amount as amount3
+        """)
+        return [record.data() for record in result]
+
+def detect_mule_accounts():
+    with driver.session() as session:
+        result = session.run("""
+            MATCH (p:Person)<-[t:SENT]-(sender:Person)
+            WITH p, count(sender) as incoming_count, 
+                 sum(t.amount) as total_received
+            WHERE incoming_count >= 3
+            AND total_received >= 10000
+            RETURN p.name as mule_account,
+                   incoming_count as number_of_senders,
+                   total_received as total_amount
+            ORDER BY incoming_count DESC
+        """)
+        return [record.data() for record in result]
+
+def detect_smurfing(sender: str):
+    with driver.session() as session:
+        result = session.run("""
+            MATCH (s:Person {name: $sender})-[t:SENT]->(r:Person)
+            WITH s, count(t) as transaction_count,
+                 sum(t.amount) as total_amount,
+                 avg(t.amount) as avg_amount
+            WHERE transaction_count >= 3
+            AND total_amount >= 10000
+            AND avg_amount < 10000
+            RETURN s.name as sender,
+                   transaction_count,
+                   total_amount,
+                   avg_amount
+        """, sender=sender)
+        return [record.data() for record in result]
+
+def detect_layering():
+    with driver.session() as session:
+        try:
+            result = session.run("""
+                MATCH (a:Person)-[:SENT]->(b:Person)-[:SENT]->(c:Person)-[:SENT]->(d:Person)-[:SENT]->(e:Person)
+                WHERE a <> e
+                RETURN a.name as origin,
+                       b.name as hop1,
+                       c.name as hop2,
+                       d.name as hop3,
+                       e.name as destination
+                LIMIT 10
+            """)
+            return [record.data() for record in result]
+        except Exception as e:
+            return []
