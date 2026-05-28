@@ -1,32 +1,34 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from api.routes import transactions
 from api.routes import alerts
 from api.routes import ml_score
 from api.routes import graph
-from websocket.manager import manager
 from api.routes import simulator
 from api.routes import auth_routes
-from fastapi import Request
-from fastapi.responses import JSONResponse
+from websocket.manager import manager
 from database import engine, Base
 from models.transaction import TransactionDB
 from models.alert import AlertDB
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.on_event("startup")
 async def startup():
-    Base.metadata.create_all(bind=engine)
     try:
-        import os
-        os.makedirs('ml', exist_ok=True)
-        if not os.path.exists('ml/xgboost_model.pkl'):
-            from ml.train_model import train_xgboost_model
-            train_xgboost_model()
-            print("ML model trained!")
+        Base.metadata.create_all(bind=engine)
+        print("Tables created!")
     except Exception as e:
-        print(f"ML training skipped: {e}")
+        print(f"Table creation error: {e}")
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -34,16 +36,6 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"error": "Internal server error", "detail": str(exc)}
     )
-
-
-
-app.add_middleware(
-    CORSMiddleware,
-   allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 app.include_router(transactions.router, prefix="/api")
 app.include_router(alerts.router, prefix="/api")
