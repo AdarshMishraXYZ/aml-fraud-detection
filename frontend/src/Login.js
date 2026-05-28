@@ -89,7 +89,7 @@ function Login({ onLogin }) {
           disabled={loading}
           style={{width: '100%', padding: '12px', background: '#e94560', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold'}}
         >
-          {loading ? 'Logging in...' : 'Login'}
+        {loading ? '⏳ Waking up server... (30-60 sec)' : 'Login'}  
         </button>
 
         <div style={{marginTop: '20px', color: '#aaa', fontSize: '12px', textAlign: 'center'}}>
