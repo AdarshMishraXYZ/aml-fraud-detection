@@ -18,10 +18,15 @@ app = FastAPI()
 @app.on_event("startup")
 async def startup():
     Base.metadata.create_all(bind=engine)
-    import os
-    if not os.path.exists('ml/xgboost_model.pkl'):
-        from ml.train_model import train_xgboost_model
-        train_xgboost_model()
+    try:
+        import os
+        os.makedirs('ml', exist_ok=True)
+        if not os.path.exists('ml/xgboost_model.pkl'):
+            from ml.train_model import train_xgboost_model
+            train_xgboost_model()
+            print("ML model trained!")
+    except Exception as e:
+        print(f"ML training skipped: {e}")
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
