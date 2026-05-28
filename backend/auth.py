@@ -23,18 +23,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Helper function to verify a plain password against its hash."""
     return pwd_context.verify(plain_password, hashed_password)
 
-# Fake users database (Updated to use the new get_password_hash function)
-USERS_DB = {
-    "admin": {
-        "username": "admin",
-        "password": get_password_hash("admin123"),
-        "role": "admin"
-    },
-    "analyst": {
-        "username": "analyst",
-        "password": get_password_hash("analyst123"),
-        "role": "analyst"
-    }
+PLAIN_USERS = {
+    "admin": {"password": "admin123", "role": "admin"},
+    "analyst": {"password": "analyst123", "role": "analyst"},
+    "adarsh": {"password": "adarsh123", "role": "analyst"},
 }
 
 def create_access_token(data: dict):

@@ -26,10 +26,14 @@ app.add_middleware(
 async def startup():
     try:
         Base.metadata.create_all(bind=engine)
-        print("Tables created!")
+        import os
+        os.makedirs('ml', exist_ok=True)
+        if not os.path.exists('ml/xgboost_model.pkl'):
+            from ml.train_model import train_xgboost_model
+            train_xgboost_model()
     except Exception as e:
-        print(f"Table creation error: {e}")
-
+        print(f"Startup: {e}")
+        
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(

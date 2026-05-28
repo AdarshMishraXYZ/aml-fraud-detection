@@ -1,37 +1,52 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+const API = 'https://aml-fraud-detection-1.onrender.com';
+
 function Dashboard() {
   const [transactions, setTransactions] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [liveAlerts, setLiveAlerts] = useState([]);
-  const ws = useRef(null);
   const [apiStatus, setApiStatus] = useState('checking');
+  const ws = useRef(null);
 
   useEffect(() => {
     fetchData();
-    fetch('   https://aml-fraud-detection-1.onrender.com/health')
-  .then(res => res.json())
-  .then(() => setApiStatus('online'))
-  .catch(() => setApiStatus('offline'));
-    ws.current = new WebSocket('   https://aml-fraud-detection-1.onrender.com');
-    ws.current.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'alert') {
-        setLiveAlerts(prev => [data, ...prev].slice(0, 5));
-        fetchData();
-      }
+    
+    fetch(`${API}/health`)
+      .then(res => res.json())
+      .then(() => setApiStatus('online'))
+      .catch(() => setApiStatus('offline'));
+
+    try {
+      ws.current = new WebSocket('wss://aml-fraud-detection-1.onrender.com/ws');
+      ws.current.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'alert') {
+          setLiveAlerts(prev => [data, ...prev].slice(0, 5));
+          fetchData();
+        }
+      };
+      ws.current.onerror = () => console.log('WebSocket not available');
+    } catch(e) {
+      console.log('WebSocket not supported');
+    }
+
+    return () => {
+      if (ws.current) ws.current.close();
     };
-    return () => ws.current.close();
   }, []);
 
   const fetchData = () => {
-    fetch('   https://aml-fraud-detection-1.onrender.com/api/transactions')
+    fetch(`${API}/api/transactions`)
       .then(res => res.json())
-      .then(data => setTransactions(data));
-    fetch('   https://aml-fraud-detection-1.onrender.com/api/alerts')
+      .then(data => setTransactions(data))
+      .catch(err => console.log('Transactions error:', err));
+
+    fetch(`${API}/api/alerts`)
       .then(res => res.json())
-      .then(data => setAlerts(data));
+      .then(data => setAlerts(data))
+      .catch(err => console.log('Alerts error:', err));
   };
 
   const flagged = transactions.filter(t => t.status === 'flagged').length;
@@ -64,17 +79,25 @@ function Dashboard() {
 
   return (
     <div className="page">
-      <h1><div style={{
-  display:'inline-flex', alignItems:'center', gap:'8px',
-  padding:'5px 12px', borderRadius:'20px', fontSize:'12px',
-  background: apiStatus === 'online' ? 'rgba(63,185,80,0.15)' : 'rgba(248,81,73,0.15)',
-  color: apiStatus === 'online' ? '#3fb950' : '#f85149',
-  border: `1px solid ${apiStatus === 'online' ? '#3fb950' : '#f85149'}`,
-  marginBottom:'20px'
-}}>
-  <span style={{width:'8px', height:'8px', borderRadius:'50%', background: apiStatus === 'online' ? '#3fb950' : '#f85149'}}></span>
-  API {apiStatus === 'online' ? 'Online' : apiStatus === 'offline' ? 'Offline' : 'Checking...'}
-</div>Dashboard Overview</h1>
+      <div style={{display:'flex', alignItems:'center', gap:'15px', marginBottom:'10px'}}>
+        <h1 style={{margin:0}}>Dashboard Overview</h1>
+        <div style={{
+          display:'inline-flex', alignItems:'center', gap:'8px',
+          padding:'5px 12px', borderRadius:'20px', fontSize:'12px',
+          background: apiStatus === 'online' ? 'rgba(63,185,80,0.15)' : 'rgba(248,81,73,0.15)',
+          color: apiStatus === 'online' ? '#3fb950' : '#f85149',
+          border: `1px solid ${apiStatus === 'online' ? '#3fb950' : '#f85149'}`
+        }}>
+          <span style={{width:'8px', height:'8px', borderRadius:'50%', background: apiStatus === 'online' ? '#3fb950' : '#f85149'}}></span>
+          API {apiStatus === 'online' ? 'Online' : apiStatus === 'offline' ? 'Offline' : 'Checking...'}
+        </div>
+        <button onClick={fetchData} style={{
+          padding:'6px 12px', background:'#21262d', color:'white',
+          border:'1px solid #30363d', borderRadius:'6px', cursor:'pointer', fontSize:'13px'
+        }}>
+          🔄 Refresh
+        </button>
+      </div>
 
       {liveAlerts.length > 0 && (
         <div className="live-alerts">
@@ -172,7 +195,7 @@ function Dashboard() {
                 <td>{t.id}</td>
                 <td>{t.sender}</td>
                 <td>{t.receiver}</td>
-                <td>{t.amount}</td>
+                <td>₹{t.amount?.toLocaleString()}</td>
                 <td className={t.status}>{t.status}</td>
                 <td>{t.ml_fraud_probability ? t.ml_fraud_probability + '%' : 'N/A'}</td>
               </tr>
