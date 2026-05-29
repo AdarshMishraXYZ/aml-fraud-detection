@@ -11,6 +11,7 @@ from websocket.manager import manager
 from database import engine, Base
 from models.transaction import TransactionDB
 from models.alert import AlertDB
+from models.user import UserDB  # FIX: import so table is created on startup
 
 app = FastAPI()
 
@@ -25,15 +26,26 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup():
     try:
+        # Create all DB tables (transactions, alerts, users)
         Base.metadata.create_all(bind=engine)
+
+        # Seed default users if none exist
+        from database import SessionLocal
+        from api.routes.auth_routes import _seed_default_users
+        db = SessionLocal()
+        _seed_default_users(db)
+        db.close()
+
+        # Train ML model if not already saved
         import os
         os.makedirs('ml', exist_ok=True)
-        if not os.path.exists('ml/xgboost_model.pkl'):
+        if not os.path.exists('ml/xgboost_model.pkl') and not os.path.exists('ml/fraud_model.pkl'):
             from ml.train_model import train_xgboost_model
             train_xgboost_model()
+
     except Exception as e:
-        print(f"Startup: {e}")
-        
+        print(f"Startup error: {e}")
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
