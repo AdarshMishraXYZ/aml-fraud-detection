@@ -1,0 +1,34 @@
+# Virtual environment
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ML Models
+*.pkl
+
+# Environment files
+.env
+*.env
+backend/.env
+
+# Node
+node_modules/
+build/
+npm-debug.log*
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Data files
+data/

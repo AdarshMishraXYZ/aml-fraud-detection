@@ -1,0 +1,205 @@
+import React, { useState, useEffect } from 'react';
+
+const API = 'https://aml-fraud-detection-1.onrender.com';
+
+function UserManagement() {
+  const role = localStorage.getItem('role');
+  const token = localStorage.getItem('token');
+
+  const [users, setUsers] = useState([]);
+  const [newUsername, setNewUsername] = useState('');
+  const [newRole, setNewRole] = useState('analyst');
+  const [newPassword, setNewPassword] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+
+  if (role !== 'admin') {
+    return (
+      <div className="page">
+        <h1>Access Denied</h1>
+        <p style={{ color: '#8b949e' }}>Only admins can manage users.</p>
+      </div>
+    );
+  }
+
+  // FIX: Fetch real users from backend on load
+  const fetchUsers = () => {
+    setLoading(true);
+    fetch(`${API}/api/auth/users`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        setUsers(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError('Failed to load users from server.');
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  // FIX: Save new user to backend
+  const addUser = () => {
+    if (!newUsername || !newPassword) {
+      setError('Username and password are required.');
+      return;
+    }
+    setError(null);
+
+    fetch(`${API}/api/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        username: newUsername,
+        password: newPassword,
+        role: newRole
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          setError(data.error);
+        } else {
+          setSuccess(`User '${newUsername}' created successfully!`);
+          setNewUsername('');
+          setNewPassword('');
+          fetchUsers(); // refresh list
+          setTimeout(() => setSuccess(null), 3000);
+        }
+      })
+      .catch(() => setError('Failed to create user.'));
+  };
+
+  // FIX: Toggle status via backend
+  const toggleStatus = (id, currentStatus) => {
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    fetch(`${API}/api/auth/users/${id}/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ status: newStatus })
+    })
+      .then(res => res.json())
+      .then(() => fetchUsers())
+      .catch(() => setError('Failed to update user status.'));
+  };
+
+  return (
+    <div className="page">
+      <h1 style={{ color: '#e94560' }}>👥 User Management</h1>
+
+      {/* Add User Form */}
+      <div className="form">
+        <h2>Add New User</h2>
+
+        {error && (
+          <div style={{ background: 'rgba(248,81,73,0.1)', border: '1px solid #f85149', borderRadius: '6px', padding: '10px', marginBottom: '10px' }}>
+            <p style={{ color: '#f85149', margin: 0 }}>⚠️ {error}</p>
+          </div>
+        )}
+        {success && (
+          <div style={{ background: 'rgba(63,185,80,0.1)', border: '1px solid #3fb950', borderRadius: '6px', padding: '10px', marginBottom: '10px' }}>
+            <p style={{ color: '#3fb950', margin: 0 }}>✅ {success}</p>
+          </div>
+        )}
+
+        <input
+          placeholder="Username"
+          value={newUsername}
+          onChange={e => setNewUsername(e.target.value)}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={newPassword}
+          onChange={e => setNewPassword(e.target.value)}
+        />
+        <select
+          value={newRole}
+          onChange={e => setNewRole(e.target.value)}
+          style={{ padding: '10px', background: '#0d1117', border: '1px solid #30363d', color: 'white', borderRadius: '6px', margin: '6px' }}
+        >
+          <option value="analyst">Analyst</option>
+          <option value="admin">Admin</option>
+        </select>
+        <button onClick={addUser}>Add User</button>
+      </div>
+
+      {/* Users Table */}
+      <h2 style={{ marginTop: '30px' }}>All Users</h2>
+
+      {loading ? (
+        <p style={{ color: '#aaa' }}>Loading users...</p>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>USERNAME</th>
+              <th>ROLE</th>
+              <th>STATUS</th>
+              <th>ACTION</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.length === 0 ? (
+              <tr>
+                <td colSpan="5" style={{ color: '#666', textAlign: 'center' }}>
+                  No users found
+                </td>
+              </tr>
+            ) : users.map(u => (
+              <tr key={u.id}>
+                <td>{u.id}</td>
+                <td>{u.username}</td>
+                <td>
+                  <span style={{
+                    padding: '3px 8px', borderRadius: '4px', fontSize: '12px',
+                    background: u.role === 'admin' ? 'rgba(248,81,73,0.2)' : 'rgba(88,166,255,0.2)',
+                    color: u.role === 'admin' ? '#f85149' : '#58a6ff'
+                  }}>
+                    {u.role}
+                  </span>
+                </td>
+                <td>
+                  <span style={{
+                    padding: '3px 8px', borderRadius: '4px', fontSize: '12px',
+                    background: u.status === 'active' ? 'rgba(63,185,80,0.2)' : 'rgba(139,148,158,0.2)',
+                    color: u.status === 'active' ? '#3fb950' : '#8b949e'
+                  }}>
+                    {u.status}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    onClick={() => toggleStatus(u.id, u.status)}
+                    style={{
+                      padding: '5px 10px', borderRadius: '4px', cursor: 'pointer',
+                      background: u.status === 'active' ? 'rgba(248,81,73,0.2)' : 'rgba(63,185,80,0.2)',
+                      color: u.status === 'active' ? '#f85149' : '#3fb950',
+                      border: 'none', fontSize: '12px'
+                    }}>
+                    {u.status === 'active' ? 'Deactivate' : 'Activate'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+export default UserManagement;
