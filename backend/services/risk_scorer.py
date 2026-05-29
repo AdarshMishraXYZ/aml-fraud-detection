@@ -1,54 +1,70 @@
+"""
+Risk scorer — combines rule-based flags and ML probability into a 0–100 score.
+
+Score bands (kept in sync with fraud_model.py thresholds):
+  81–100  CRITICAL
+  61–80   HIGH
+  31–60   MEDIUM
+   0–30   LOW
+"""
+
+SUSPICIOUS_RECEIVERS = ["Unknown", "Anonymous", "Offshore_Account", "Test", "Fake"]
+
+
 def calculate_risk_score(
     amount: float,
     sender: str,
     receiver: str,
-    ml_probability: float,
+    ml_probability: float,   # 0–100
     fraud_status: str
 ) -> dict:
-    
+
     score = 0
     reasons = []
 
-    # Rule-based score (max 30)
+    # ── 1. Rule-based component (max 35 pts) ──────────────────────────────
     if fraud_status == "flagged":
-        score += 30
-        reasons.append("Large amount detected")
+        score += 35
+        reasons.append("Large amount detected (>₹50,000)")
     elif fraud_status == "suspicious":
-        score += 20
-        reasons.append("Suspicious receiver or pattern")
+        score += 25
+        reasons.append("Suspicious receiver or round-number pattern")
     elif fraud_status == "review":
-        score += 10
-        reasons.append("Medium risk amount")
+        score += 15
+        reasons.append("Medium-risk amount (₹20,000–₹50,000)")
+    elif fraud_status == "rejected":
+        score += 20
+        reasons.append("Self-transfer rejected")
 
-    # ML score (max 40)
-    ml_score = (ml_probability / 100) * 40
+    # ── 2. ML component (max 40 pts) ──────────────────────────────────────
+    # FIX: Previously used (ml_probability / 100) * 40 which was correct,
+    #      but thresholds below were inconsistent with fraud_model.py.
+    ml_score = round((ml_probability / 100) * 40)
     score += ml_score
-    if ml_probability > 70:
-        reasons.append(f"ML model flagged {ml_probability}% fraud probability")
-    elif ml_probability > 30:
-        reasons.append(f"ML model detected {ml_probability}% risk")
+    if ml_probability >= 70:
+        reasons.append(f"ML model: {ml_probability:.0f}% fraud probability (HIGH)")
+    elif ml_probability >= 35:
+        reasons.append(f"ML model: {ml_probability:.0f}% fraud probability (MEDIUM)")
 
-    # Additional pattern checks (max 30)
-    # Round number check
+    # ── 3. Pattern bonuses (max 25 pts) ───────────────────────────────────
+    # Round-number structuring
     if amount % 10000 == 0 and amount >= 10000:
         score += 10
-        reasons.append("Suspicious round number amount")
+        reasons.append("Suspicious round-number structuring")
 
-    # Known suspicious receivers
-    suspicious_names = ["Unknown", "Anonymous", "Test", "Fake"]
-    if receiver in suspicious_names:
+    # Known suspicious receiver
+    if receiver in SUSPICIOUS_RECEIVERS:
         score += 10
-        reasons.append("Receiver is suspicious entity")
+        reasons.append(f"Receiver '{receiver}' is a flagged entity")
 
-    # Large amount bonus
+    # Extremely large amount
     if amount > 100000:
-        score += 10
-        reasons.append("Extremely large transaction")
+        score += 5
+        reasons.append("Extremely large transaction (>₹1,00,000)")
 
-    # Cap at 100
+    # ── Cap & classify ─────────────────────────────────────────────────────
     score = min(round(score), 100)
 
-    # Risk level
     if score >= 81:
         risk_level = "CRITICAL"
     elif score >= 61:
@@ -61,5 +77,5 @@ def calculate_risk_score(
     return {
         "risk_score": score,
         "risk_level": risk_level,
-        "reasons": reasons
+        "reasons": reasons if reasons else ["No significant risk factors detected"]
     }
