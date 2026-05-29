@@ -14,27 +14,21 @@ function UserManagement() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  if (role !== 'admin') {
-    return (
-      <div className="page">
-        <h1>Access Denied</h1>
-        <p style={{ color: '#8b949e' }}>Only admins can manage users.</p>
-      </div>
-    );
-  }
-
-  // FIX: Fetch real users from backend on load
   const fetchUsers = () => {
     setLoading(true);
+    setError(null);
     fetch(`${API}/api/auth/users`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        return res.json();
+      })
       .then(data => {
         setUsers(Array.isArray(data) ? data : []);
         setLoading(false);
       })
-      .catch(err => {
+      .catch(() => {
         setError('Failed to load users from server.');
         setLoading(false);
       });
@@ -44,42 +38,45 @@ function UserManagement() {
     fetchUsers();
   }, []);
 
-  // FIX: Save new user to backend
+  if (role !== 'admin') {
+    return (
+      <div className="page">
+        <h1>Access Denied</h1>
+        <p style={{ color: '#8b949e' }}>Only admins can manage users.</p>
+      </div>
+    );
+  }
+
   const addUser = () => {
     if (!newUsername || !newPassword) {
       setError('Username and password are required.');
       return;
     }
     setError(null);
-
+    setSuccess(null);
     fetch(`${API}/api/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({
-        username: newUsername,
-        password: newPassword,
-        role: newRole
-      })
+      body: JSON.stringify({ username: newUsername, password: newPassword, role: newRole })
     })
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) {
-          setError(data.error);
-        } else {
-          setSuccess(`User '${newUsername}' created successfully!`);
-          setNewUsername('');
-          setNewPassword('');
-          fetchUsers(); // refresh list
-          setTimeout(() => setSuccess(null), 3000);
-        }
+      .then(res => {
+        if (!res.ok) return res.json().then(e => { throw new Error(e.detail || 'Failed to add user'); });
+        return res.json();
       })
-      .catch(() => setError('Failed to create user.'));
+      .then(() => {
+        setSuccess(`User '${newUsername}' created successfully!`);
+        setNewUsername('');
+        setNewPassword('');
+        setNewRole('analyst');
+        fetchUsers();
+        setTimeout(() => setSuccess(null), 3000);
+      })
+      .catch(err => setError(err.message));
   };
 
-  // FIX: Toggle status via backend
   const toggleStatus = (id, currentStatus) => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     fetch(`${API}/api/auth/users/${id}/status`, {
@@ -90,7 +87,10 @@ function UserManagement() {
       },
       body: JSON.stringify({ status: newStatus })
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to update status');
+        return res.json();
+      })
       .then(() => fetchUsers())
       .catch(() => setError('Failed to update user status.'));
   };
@@ -99,7 +99,6 @@ function UserManagement() {
     <div className="page">
       <h1 style={{ color: '#e94560' }}>👥 User Management</h1>
 
-      {/* Add User Form */}
       <div className="form">
         <h2>Add New User</h2>
 
@@ -136,7 +135,6 @@ function UserManagement() {
         <button onClick={addUser}>Add User</button>
       </div>
 
-      {/* Users Table */}
       <h2 style={{ marginTop: '30px' }}>All Users</h2>
 
       {loading ? (
@@ -155,9 +153,7 @@ function UserManagement() {
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan="5" style={{ color: '#666', textAlign: 'center' }}>
-                  No users found
-                </td>
+                <td colSpan="5" style={{ color: '#666', textAlign: 'center' }}>No users found</td>
               </tr>
             ) : users.map(u => (
               <tr key={u.id}>
