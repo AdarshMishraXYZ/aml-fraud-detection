@@ -22,6 +22,7 @@ def get_neo4j_session():
     return driver.session(database=os.getenv("NEO4J_DATABASE", "neo4j"))
 
 def add_transaction_to_graph(sender: str, receiver: str, amount: float, status: str):
+    print(f"[Neo4j] Adding transaction: {sender} -> {receiver} amount={amount} status={status}")
     if driver is None:
         return
     try:
