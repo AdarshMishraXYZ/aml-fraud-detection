@@ -32,6 +32,7 @@ def add_transaction_to_graph(sender: str, receiver: str, amount: float, status: 
                 MERGE (r:Person {name: $receiver})
                 CREATE (s)-[:SENT {amount: $amount, status: $status}]->(r)
             """, sender=sender, receiver=receiver, amount=amount, status=status)
+            print(f"[Neo4j] SUCCESS: {sender} -> {receiver}")
     except Exception as e:
         print(f"Neo4j error: {e}")
 
