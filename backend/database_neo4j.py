@@ -19,13 +19,13 @@ except Exception as e:
 def get_neo4j_session():
     if driver is None:
         return None
-    return driver.session()
+    return driver.session(database=os.getenv("NEO4J_DATABASE", "neo4j"))
 
 def add_transaction_to_graph(sender: str, receiver: str, amount: float, status: str):
     if driver is None:
         return
     try:
-        with driver.session() as session:
+        with driver.session(database=os.getenv("NEO4J_DATABASE", "neo4j")) as session:
             session.run("""
                 MERGE (s:Person {name: $sender})
                 MERGE (r:Person {name: $receiver})
@@ -38,7 +38,7 @@ def get_fraud_network(name: str):
     if driver is None:
         return []
     try:
-        with driver.session() as session:
+        with driver.session(database=os.getenv("NEO4J_DATABASE", "neo4j")) as session:
             result = session.run("""
                 MATCH (p:Person {name: $name})-[t:SENT]->(r:Person)
                 RETURN p.name as sender, r.name as receiver, 
@@ -52,7 +52,7 @@ def detect_circular_transactions():
     if driver is None:
         return []
     try:
-        with driver.session() as session:
+        with driver.session(database=os.getenv("NEO4J_DATABASE", "neo4j")) as session:
             result = session.run("""
                 MATCH (a:Person)-[t1:SENT]->(b:Person)-[t2:SENT]->(c:Person)-[t3:SENT]->(a)
                 WHERE t1.amount >= 10000 
@@ -72,7 +72,7 @@ def detect_mule_accounts():
     if driver is None:
         return []
     try:
-        with driver.session() as session:
+        with driver.session(database=os.getenv("NEO4J_DATABASE", "neo4j")) as session:
             result = session.run("""
                 MATCH (p:Person)<-[t:SENT]-(sender:Person)
                 WITH p, count(sender) as incoming_count, 
@@ -92,7 +92,7 @@ def detect_smurfing(sender: str):
     if driver is None:
         return []
     try:
-        with driver.session() as session:
+        with driver.session(database=os.getenv("NEO4J_DATABASE", "neo4j")) as session:
             result = session.run("""
                 MATCH (s:Person {name: $sender})-[t:SENT]->(r:Person)
                 WITH s, count(t) as transaction_count,
@@ -114,7 +114,7 @@ def detect_layering():
     if driver is None:
         return []
     try:
-        with driver.session() as session:
+        with driver.session(database=os.getenv("NEO4J_DATABASE", "neo4j")) as session:
             result = session.run("""
                 MATCH (a:Person)-[:SENT]->(b:Person)-[:SENT]->(c:Person)-[:SENT]->(d:Person)-[:SENT]->(e:Person)
                 WHERE a <> e
