@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-const API = 'https://aml-fraud-detection-1.onrender.com';
+const API = 'https://aml-fraud-detection.onrender.com';
 
 function UserManagement() {
   const role = localStorage.getItem('role');

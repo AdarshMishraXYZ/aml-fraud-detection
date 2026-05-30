@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const API = 'https://aml-fraud-detection-1.onrender.com';
+const API = 'https://aml-fraud-detection.onrender.com';
 
 function ReportPage() {
   const [report, setReport] = useState(null);

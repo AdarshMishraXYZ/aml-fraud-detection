@@ -7,7 +7,7 @@ function Navbar({ user, onLogout }) {
   const [txCount, setTxCount] = useState(0);
 
   useEffect(() => {
-    fetch('https://aml-fraud-detection-1.onrender.com/api/transactions')
+    fetch('https://aml-fraud-detection.onrender.com/api/transactions')
       .then(res => res.json())
       .then(data => setTxCount(data.length))
       .catch(() => {});

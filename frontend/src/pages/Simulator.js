@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const API = 'https://aml-fraud-detection-1.onrender.com';
+const API = 'https://aml-fraud-detection.onrender.com';
 
 function Simulator() {
   const [total, setTotal] = useState(50);

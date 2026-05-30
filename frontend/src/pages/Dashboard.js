@@ -4,7 +4,7 @@ import {
   XAxis, YAxis, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
-const API = 'https://aml-fraud-detection-1.onrender.com';
+const API = 'https://aml-fraud-detection.onrender.com';
 const COLORS = ['#f85149', '#e3b341', '#3fb950', '#58a6ff'];
 
 // FIX: Poll every 15 seconds so the dashboard stays up-to-date after
@@ -51,7 +51,7 @@ function Dashboard() {
 
     // WebSocket for instant live alerts
     try {
-      ws.current = new WebSocket('wss://aml-fraud-detection-1.onrender.com/ws');
+      ws.current = new WebSocket('wss://aml-fraud-detection.onrender.com/ws');
       ws.current.onopen = () => console.log('[WS] Connected');
       ws.current.onmessage = (event) => {
         try {
