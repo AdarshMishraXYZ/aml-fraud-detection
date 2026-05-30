@@ -58,9 +58,9 @@ def detect_circular_transactions():
                 WHERE t1.amount >= 10000 
                 AND t2.amount >= 10000 
                 AND t3.amount >= 10000
-                AND (t1.status = 'flagged' OR t1.status = 'suspicious')
-                AND (t2.status = 'flagged' OR t2.status = 'suspicious')
-                AND (t3.status = 'flagged' OR t3.status = 'suspicious')
+                AND (t1.status IN ['flagged', 'suspicious', 'review'])
+                AND (t2.status IN ['flagged', 'suspicious', 'review'])
+                AND (t3.status IN ['flagged', 'suspicious', 'review'])
                 RETURN a.name as person1, b.name as person2, c.name as person3,
                        t1.amount as amount1, t2.amount as amount2, t3.amount as amount3
             """)
