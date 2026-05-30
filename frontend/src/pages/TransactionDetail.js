@@ -7,7 +7,7 @@ function TransactionDetail() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`   https://aml-fraud-detection-1.onrender.com/api/transactions/${id}/detail`)
+    fetch(`https://aml-fraud-detection-1.onrender.com/api/transactions/${id}/detail`)
       .then(res => res.json())
       .then(data => {
         setDetail(data);

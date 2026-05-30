@@ -16,7 +16,7 @@ function Login({ onLogin }) {
     formData.append('password', password);
 
     try {
-      const response = await fetch('   https://aml-fraud-detection-1.onrender.com/api/auth/login', {
+      const response = await fetch('https://aml-fraud-detection-1.onrender.com/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formData
