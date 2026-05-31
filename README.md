@@ -47,7 +47,7 @@ https://github.com/user-attachments/assets/aa1e240e-117a-4921-b5fe-d9e7ad76d8ef
 | Role | Username | Password |
 |---|---|---|
 | Admin | `admin` | `*******` |
-| Analyst | `analyst` | `analyst123` |
+| Analyst | `analyst` | `*******` |
 
 
 
