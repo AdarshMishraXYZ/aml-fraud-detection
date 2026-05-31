@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import ForceGraph2D from 'react-force-graph-2d';
 
 const API = 'https://aml-fraud-detection.onrender.com';
 
@@ -6,180 +7,114 @@ function ReportPage() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('table');
+  const graphRef = useRef();
 
   useEffect(() => {
     fetch(`${API}/api/graph/full-report`)
       .then(res => {
-        if (!res.ok) throw new Error(`Server error: ${res.status}`);
         return res.json();
       })
-      .then(data => {
-        setReport(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError(err.message);
-        setLoading(false);
-      });
+      .then(data => { setReport(data); setLoading(false); })
+      .catch(err => { setError(err.message); setLoading(false); });
   }, []);
 
-  if (loading) return (
-    <div className="page">
-      <h2 style={{ color: '#aaa' }}>⏳ Loading Fraud Report...</h2>
-    </div>
-  );
-
-  if (error) return (
-    <div className="page">
-      <h2 style={{ color: '#f85149' }}>⚠️ Failed to load report</h2>
-      <p style={{ color: '#aaa' }}>{error}</p>
-      <button onClick={() => window.location.reload()}
-        style={{ padding: '10px 20px', background: '#e94560', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-        Retry
-      </button>
-    </div>
-  );
+  if (loading) return <div className='page'><h2 style={{color:'#aaa'}}>Loading...</h2></div>;
+  if (error) return <div className='page'><h2 style={{color:'#f85149'}}>Error: {error}</h2></div>;
 
   const circular = report.circular_transactions || [];
   const mules = report.mule_accounts || [];
   const layering = report.layering_detected || [];
-  const summary = report.summary || { circular_rings: 0, mule_accounts: 0, layering_chains: 0, total_patterns: 0 };
+  const summary = report.summary || {};
 
-  const neo4jOffline = summary.total_patterns === 0 && !report.neo4j_connected;
+  const buildGraphData = () => {
+    const nodesMap = {};
+    const links = [];
+    const addNode = (id, type) => { if (!nodesMap[id]) nodesMap[id] = { id, type }; };
+    circular.forEach(c => {
+      addNode(c.person1, 'circular'); addNode(c.person2, 'circular'); addNode(c.person3, 'circular');
+      links.push({ source: c.person1, target: c.person2, amount: c.amount1, type: 'circular' });
+      links.push({ source: c.person2, target: c.person3, amount: c.amount2, type: 'circular' });
+      links.push({ source: c.person3, target: c.person1, amount: c.amount3, type: 'circular' });
+    });
+    mules.forEach(m => addNode(m.mule_account, 'mule'));
+    layering.forEach(l => {
+      const hops = [l.origin, l.hop1, l.hop2, l.hop3, l.destination].filter(Boolean);
+      hops.forEach((h, i) => {
+        addNode(h, i === 0 || i === hops.length-1 ? 'layering_endpoint' : 'layering');
+        if (i < hops.length-1) links.push({ source: hops[i], target: hops[i+1], type: 'layering' });
+      });
+    });
+    return { nodes: Object.values(nodesMap), links };
+  };
+
+  const graphData = buildGraphData();
+  const nodeColor = n => ({ circular:'#f85149', mule:'#e3b341', layering:'#58a6ff', layering_endpoint:'#8b5cf6' }[n.type] || '#8b949e');
+  const linkColor = l => ({ circular:'#f85149', layering:'#58a6ff' }[l.type] || '#8b949e');
+  const tabStyle = t => ({ padding:'10px 24px', border:'none', borderRadius:'6px 6px 0 0', cursor:'pointer', fontSize:'14px', fontWeight:'bold', background: activeTab===t ? '#e94560':'#21262d', color: activeTab===t ? 'white':'#8b949e', marginRight:'4px' });
 
   return (
-    <div className="page">
-      <h1 style={{ color: '#e94560' }}>🔍 Fraud Analysis Report</h1>
-
-      {/* Neo4j offline warning */}
-      {neo4jOffline && (
-        <div style={{
-          background: 'rgba(227,179,65,0.1)', border: '1px solid #e3b341',
-          borderRadius: '8px', padding: '15px', marginBottom: '20px'
-        }}>
-          <p style={{ color: '#e3b341', margin: 0 }}>
-            ⚠️ <strong>Graph database (Neo4j) is not connected.</strong> Run the simulator to generate
-            transactions — circular rings, mule accounts and layering chains will appear here
-            once enough flagged transactions exist. Neo4j requires a paid plan on Render.
-            <br /><br />
-            <strong>To enable:</strong> Set <code>NEO4J_URI</code>, <code>NEO4J_USERNAME</code>,
-            <code>NEO4J_PASSWORD</code> in your Render environment variables pointing to a
-            Neo4j Aura free instance (<a href="https://neo4j.com/cloud/aura-free/" target="_blank"
-            rel="noreferrer" style={{ color: '#58a6ff' }}>neo4j.com/cloud/aura-free</a>).
-          </p>
+    <div className='page'>
+      <h1 style={{color:'#e94560'}}>Fraud Analysis Report</h1>
+      <div className='cards'>
+        <div className='card red'><h3>CIRCULAR RINGS</h3><p>{summary.circular_rings||0}</p></div>
+        <div className='card yellow'><h3>MULE ACCOUNTS</h3><p>{summary.mule_accounts||0}</p></div>
+        <div className='card blue'><h3>LAYERING CHAINS</h3><p>{summary.layering_chains||0}</p></div>
+        <div className='card'><h3>TOTAL PATTERNS</h3><p>{summary.total_patterns||0}</p></div>
+      </div>
+      <div style={{marginTop:'30px'}}>
+        <button style={tabStyle('table')} onClick={()=>setActiveTab('table')}>Table View</button>
+        <button style={tabStyle('graph')} onClick={()=>setActiveTab('graph')}>Graph View</button>
+      </div>
+      {activeTab==='table' && (
+        <div style={{border:'1px solid #30363d',borderRadius:'0 8px 8px 8px',padding:'20px'}}>
+          <h2 style={{borderLeft:'4px solid #f85149',paddingLeft:'12px'}}>Circular Fraud Rings</h2>
+          <table><thead><tr><th>PERSON 1</th><th>PERSON 2</th><th>PERSON 3</th><th>AMOUNT 1</th><th>AMOUNT 2</th><th>AMOUNT 3</th></tr></thead>
+          <tbody>{circular.length===0?<tr><td colSpan='6' style={{color:'#666',textAlign:'center'}}>No circular rings detected yet</td></tr>:circular.map((c,i)=><tr key={i}><td className='flagged'>{c.person1}</td><td className='flagged'>{c.person2}</td><td className='flagged'>{c.person3}</td><td>Rs{Number(c.amount1).toLocaleString()}</td><td>Rs{Number(c.amount2).toLocaleString()}</td><td>Rs{Number(c.amount3).toLocaleString()}</td></tr>)}</tbody></table>
+          <h2 style={{borderLeft:'4px solid #e3b341',paddingLeft:'12px',marginTop:'20px'}}>Mule Accounts</h2>
+          <table><thead><tr><th>ACCOUNT</th><th>NUMBER OF SENDERS</th><th>TOTAL RECEIVED</th></tr></thead>
+          <tbody>{mules.length===0?<tr><td colSpan='3' style={{color:'#666',textAlign:'center'}}>No mule accounts detected yet</td></tr>:mules.map((m,i)=><tr key={i}><td className='suspicious'>{m.mule_account}</td><td>{m.number_of_senders}</td><td>Rs{Number(m.total_amount).toLocaleString()}</td></tr>)}</tbody></table>
+          <h2 style={{borderLeft:'4px solid #58a6ff',paddingLeft:'12px',marginTop:'20px'}}>Layering Chains</h2>
+          <table><thead><tr><th>ORIGIN</th><th>HOP 1</th><th>HOP 2</th><th>HOP 3</th><th>DESTINATION</th></tr></thead>
+          <tbody>{layering.length===0?<tr><td colSpan='5' style={{color:'#666',textAlign:'center'}}>No layering chains detected yet</td></tr>:layering.map((l,i)=><tr key={i}><td className='flagged'>{l.origin}</td><td>{l.hop1}</td><td>{l.hop2}</td><td>{l.hop3}</td><td className='flagged'>{l.destination}</td></tr>)}</tbody></table>
         </div>
       )}
-
-      {/* Summary cards */}
-      <div className="cards">
-        <div className="card red">
-          <h3>CIRCULAR RINGS</h3>
-          <p>{summary.circular_rings}</p>
-        </div>
-        <div className="card yellow">
-          <h3>MULE ACCOUNTS</h3>
-          <p>{summary.mule_accounts}</p>
-        </div>
-        <div className="card blue">
-          <h3>LAYERING CHAINS</h3>
-          <p>{summary.layering_chains}</p>
-        </div>
-        <div className="card">
-          <h3>TOTAL PATTERNS</h3>
-          <p>{summary.total_patterns}</p>
-        </div>
-      </div>
-
-      {/* Circular Fraud Rings */}
-      <div style={{ marginTop: '30px' }}>
-        <h2 style={{ borderLeft: '4px solid #f85149', paddingLeft: '12px' }}>
-          🔴 Circular Fraud Rings
-        </h2>
-        <table>
-          <thead>
-            <tr>
-              <th>PERSON 1</th><th>PERSON 2</th><th>PERSON 3</th>
-              <th>AMOUNT 1</th><th>AMOUNT 2</th><th>AMOUNT 3</th>
-            </tr>
-          </thead>
-          <tbody>
-            {circular.length === 0 ? (
-              <tr><td colSpan="6" style={{ color: '#666', textAlign: 'center' }}>
-                No circular rings detected yet
-              </td></tr>
-            ) : circular.map((c, i) => (
-              <tr key={i}>
-                <td className="flagged">{c.person1}</td>
-                <td className="flagged">{c.person2}</td>
-                <td className="flagged">{c.person3}</td>
-                <td>₹{Number(c.amount1).toLocaleString()}</td>
-                <td>₹{Number(c.amount2).toLocaleString()}</td>
-                <td>₹{Number(c.amount3).toLocaleString()}</td>
-              </tr>
+      {activeTab==='graph' && (
+        <div style={{border:'1px solid #30363d',borderRadius:'0 8px 8px 8px',padding:'20px'}}>
+          <div style={{display:'flex',gap:'20px',marginBottom:'15px',flexWrap:'wrap'}}>
+            {[{color:'#f85149',label:'Circular Ring'},{color:'#e3b341',label:'Mule Account'},{color:'#58a6ff',label:'Layering Hop'},{color:'#8b5cf6',label:'Layering Endpoint'}].map(({color,label})=>(
+              <div key={label} style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                <div style={{width:'12px',height:'12px',borderRadius:'50%',background:color}}/>
+                <span style={{color:'#aaa',fontSize:'13px'}}>{label}</span>
+              </div>
             ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Mule Accounts */}
-      <div style={{ marginTop: '30px' }}>
-        <h2 style={{ borderLeft: '4px solid #e3b341', paddingLeft: '12px' }}>
-          🟡 Mule Accounts
-        </h2>
-        <table>
-          <thead>
-            <tr>
-              <th>ACCOUNT</th><th>NUMBER OF SENDERS</th><th>TOTAL RECEIVED</th>
-            </tr>
-          </thead>
-          <tbody>
-            {mules.length === 0 ? (
-              <tr><td colSpan="3" style={{ color: '#666', textAlign: 'center' }}>
-                No mule accounts detected yet
-              </td></tr>
-            ) : mules.map((m, i) => (
-              <tr key={i}>
-                <td className="suspicious">{m.mule_account}</td>
-                <td>{m.number_of_senders}</td>
-                <td>₹{Number(m.total_amount).toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Layering Chains */}
-      <div style={{ marginTop: '30px' }}>
-        <h2 style={{ borderLeft: '4px solid #58a6ff', paddingLeft: '12px' }}>
-          🔵 Layering Chains
-        </h2>
-        <table>
-          <thead>
-            <tr>
-              <th>ORIGIN</th><th>HOP 1</th><th>HOP 2</th><th>HOP 3</th><th>DESTINATION</th>
-            </tr>
-          </thead>
-          <tbody>
-            {layering.length === 0 ? (
-              <tr><td colSpan="5" style={{ color: '#666', textAlign: 'center' }}>
-                No layering chains detected yet
-              </td></tr>
-            ) : layering.map((l, i) => (
-              <tr key={i}>
-                <td className="flagged">{l.origin}</td>
-                <td>{l.hop1}</td>
-                <td>{l.hop2}</td>
-                <td>{l.hop3}</td>
-                <td className="flagged">{l.destination}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <br />
-      <button onClick={() => window.location.href = '/'}
-        style={{ padding: '10px 20px', background: '#e94560', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px' }}>
+          </div>
+          {graphData.nodes.length===0?(
+            <div style={{textAlign:'center',color:'#666',padding:'60px'}}>
+              <p>No fraud patterns to visualize yet.</p>
+            </div>
+          ):(
+            <div style={{background:'#0d1117',borderRadius:'8px',overflow:'hidden'}}>
+              <ForceGraph2D ref={graphRef} graphData={graphData} width={750} height={500} backgroundColor='#0d1117'
+                nodeLabel='id' nodeColor={nodeColor} nodeRelSize={8} linkColor={linkColor} linkWidth={2}
+                linkDirectionalArrowLength={6} linkDirectionalArrowRelPos={1}
+                nodeCanvasObject={(node,ctx,globalScale)=>{
+                  const fontSize=12/globalScale;
+                  ctx.font=fontSize+'px Sans-Serif';
+                  ctx.fillStyle=nodeColor(node);
+                  ctx.beginPath(); ctx.arc(node.x,node.y,6,0,2*Math.PI); ctx.fill();
+                  ctx.fillStyle='white'; ctx.textAlign='center'; ctx.textBaseline='middle';
+                  ctx.fillText(node.id,node.x,node.y+14);
+                }}
+                cooldownTicks={100}
+                onEngineStop={()=>graphRef.current&&graphRef.current.zoomToFit(400)}
+              />
+            </div>
+          )}
+        </div>
+      )}
+      <br/>
+      <button onClick={()=>window.location.href='/'} style={{padding:'10px 20px',background:'#e94560',color:'white',border:'none',borderRadius:'4px',cursor:'pointer',fontSize:'16px'}}>
         Back to Dashboard
       </button>
     </div>
