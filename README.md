@@ -3,7 +3,8 @@ A full-stack Anti-Money Laundering (AML) detection system that uses machine lear
 
 **🌐 Live Demo:** [aml-fraud-detection.vercel.app](https://aml-fraud-detection.vercel.app)
 
----
+# PROJECT VIDEO 
+https://github.com/user-attachments/assets/aa1e240e-117a-4921-b5fe-d9e7ad76d8ef
 
 ## ✨ Features
 
