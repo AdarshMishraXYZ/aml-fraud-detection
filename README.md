@@ -41,6 +41,31 @@ https://github.com/user-attachments/assets/aa1e240e-117a-4921-b5fe-d9e7ad76d8ef
 - Python 3.10+
 - PostgreSQL database (or use the Render hosted one)
 
+- Backend setup
+bashcd backend
+pip install -r requirements.txt
+Create a .env file in /backend:
+
+envDATABASE_URL=postgresql://user:password@localhost:5432/aml_db
+SECRET_KEY=your_secret_key_here
+NEO4J_URI=neo4j+s://your-aura-instance.databases.neo4j.io   # optional
+NEO4J_USERNAME=neo4j
+NEO4J_PASSWORD=your_neo4j_password
+
+Run the backend:
+bashuvicorn main:app --reload
+The API will be live at http://localhost:8000. On first startup it will:
+
+Auto-create all database tables
+Seed default admin and analyst accounts
+Train the XGBoost ML model if no saved model exists
+
+3. Frontend setup
+bashcd frontend
+npm install
+npm start
+The app will open at http://localhost:3000.
+
 
 ## 🔑 Default Login Credentials
 
