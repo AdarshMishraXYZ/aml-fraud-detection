@@ -10,6 +10,7 @@ import TransactionDetail from './pages/TransactionDetail';
 import Login from './Login';
 import './App.css';
 import UserManagement from './pages/UserManagement';
+import SuspectProfile from './pages/SuspectProfile';
 
 function App() {
   const [user, setUser] = useState(() => {
