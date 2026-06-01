@@ -7,7 +7,7 @@ function SuspectProfile() {
   const { name } = useParams();
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState([]);
-  const [network, setNetwork] = useState([]);
+  
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -19,7 +19,7 @@ function SuspectProfile() {
     ]).then(([allTx, net, rep]) => {
       const personTx = Array.isArray(allTx) ? allTx.filter(t => t.sender === name || t.receiver === name) : [];
       setTransactions(personTx);
-      setNetwork(net.transactions || []);
+      
       setReport(rep);
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -36,9 +36,9 @@ function SuspectProfile() {
   const riskLevel = riskScore >= 60 ? "CRITICAL" : riskScore >= 30 ? "HIGH" : riskScore >= 10 ? "MEDIUM" : "LOW";
   const riskColor = riskScore >= 60 ? "#f85149" : riskScore >= 30 ? "#e94560" : riskScore >= 10 ? "#e3b341" : "#3fb950";
 
-  const circular = (report && report.circular_transactions || []).filter(c => c.person1 === name || c.person2 === name || c.person3 === name);
-  const mules = (report && report.mule_accounts || []).filter(m => m.mule_account === name);
-  const layering = (report && report.layering_detected || []).filter(l => l.origin === name || l.destination === name || l.hop1 === name || l.hop2 === name || l.hop3 === name);
+  const circular = ((report && report.circular_transactions) || []).filter(c => c.person1 === name || c.person2 === name || c.person3 === name);
+  const mules = ((report && report.mule_accounts) || []).filter(m => m.mule_account === name);
+  const layering = ((report && report.layering_detected) || []).filter(l => l.origin === name || l.destination === name || l.hop1 === name || l.hop2 === name || l.hop3 === name);
 
   const statusColor = s => ({flagged:"#f85149",suspicious:"#e3b341",review:"#58a6ff",clean:"#3fb950"}[s] || "#aaa");
 

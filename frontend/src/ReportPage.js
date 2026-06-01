@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import ForceGraph2D from 'react-force-graph-2d';
-import { useNavigate } from 'react-router-dom';
+
 
 const API = 'https://aml-fraud-detection.onrender.com';
 
@@ -12,7 +12,7 @@ function ReportPage() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('table');
   const graphRef = useRef();
-  const navigate = useNavigate();
+  
 
   useEffect(() => {
     fetch(`${API}/api/graph/full-report`)
