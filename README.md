@@ -15,7 +15,7 @@ https://github.com/user-attachments/assets/aa1e240e-117a-4921-b5fe-d9e7ad76d8ef
 - **🚨 Smart Alerting** — Automatic alerts for flagged and suspicious transactions with severity levels
 - **👥 User Management** — Role-based access control (Admin / Analyst) with persistent user storage
 - **📈 Risk Scoring** — Combined ML probability + rule-based scoring giving a 0–100 risk score per transaction
-- **🔐 JWT Authentication** — Secure login with token-based auth and role-protected routes
+- **🔐 JWT Authentication** — Secure login with token-based auth and role-protected routes.
 
 ---
 
