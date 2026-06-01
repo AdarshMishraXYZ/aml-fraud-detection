@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import ForceGraph2D from 'react-force-graph-2d';
 
 const API = 'https://aml-fraud-detection.onrender.com';
@@ -53,6 +55,133 @@ function ReportPage() {
   const linkColor = l => ({ circular:'#f85149', layering:'#58a6ff' }[l.type] || '#8b949e');
   const tabStyle = t => ({ padding:'10px 24px', border:'none', borderRadius:'6px 6px 0 0', cursor:'pointer', fontSize:'14px', fontWeight:'bold', background: activeTab===t ? '#e94560':'#21262d', color: activeTab===t ? 'white':'#8b949e', marginRight:'4px' });
 
+
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Header
+    doc.setFillColor(233, 69, 96);
+    doc.rect(0, 0, pageWidth, 25, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('AML FRAUD ANALYSIS REPORT', pageWidth / 2, 16, { align: 'center' });
+
+    // Date
+    doc.setFontSize(9);
+    doc.setTextColor(200, 200, 200);
+    doc.text('Generated: ' + new Date().toLocaleString(), pageWidth / 2, 22, { align: 'center' });
+
+    let y = 35;
+
+    // Summary boxes
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SUMMARY', 14, y);
+    y += 6;
+
+    const summaryData = [
+      ['Circular Rings', summary.circular_rings || 0],
+      ['Mule Accounts', summary.mule_accounts || 0],
+      ['Layering Chains', summary.layering_chains || 0],
+      ['Total Patterns', summary.total_patterns || 0],
+    ];
+    autoTable(doc, {
+      startY: y,
+      head: [['Pattern Type', 'Count']],
+      body: summaryData,
+      theme: 'grid',
+      headStyles: { fillColor: [233, 69, 96], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      margin: { left: 14, right: 14 },
+      tableWidth: 80,
+    });
+    y = doc.lastAutoTable.finalY + 12;
+
+    // Circular Rings
+    doc.setFontSize(12);
+    doc.setTextColor(248, 81, 73);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Circular Fraud Rings', 14, y);
+    y += 4;
+    if (circular.length === 0) {
+      doc.setFontSize(9); doc.setTextColor(150, 150, 150); doc.setFont('helvetica', 'normal');
+      doc.text('No circular rings detected', 14, y + 6);
+      y += 14;
+    } else {
+      autoTable(doc, {
+        startY: y,
+        head: [['Person 1', 'Person 2', 'Person 3', 'Amount 1', 'Amount 2', 'Amount 3']],
+        body: circular.map(c => [c.person1, c.person2, c.person3,
+          'Rs' + Number(c.amount1).toLocaleString(),
+          'Rs' + Number(c.amount2).toLocaleString(),
+          'Rs' + Number(c.amount3).toLocaleString()]),
+        theme: 'grid',
+        headStyles: { fillColor: [248, 81, 73], textColor: 255 },
+        alternateRowStyles: { fillColor: [255, 245, 245] },
+        margin: { left: 14, right: 14 },
+      });
+      y = doc.lastAutoTable.finalY + 12;
+    }
+
+    // Mule Accounts
+    doc.setFontSize(12);
+    doc.setTextColor(227, 179, 65);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Mule Accounts', 14, y);
+    y += 4;
+    if (mules.length === 0) {
+      doc.setFontSize(9); doc.setTextColor(150, 150, 150); doc.setFont('helvetica', 'normal');
+      doc.text('No mule accounts detected', 14, y + 6);
+      y += 14;
+    } else {
+      autoTable(doc, {
+        startY: y,
+        head: [['Account', 'Number of Senders', 'Total Received']],
+        body: mules.map(m => [m.mule_account, m.number_of_senders, 'Rs' + Number(m.total_amount).toLocaleString()]),
+        theme: 'grid',
+        headStyles: { fillColor: [227, 179, 65], textColor: 0 },
+        alternateRowStyles: { fillColor: [255, 252, 235] },
+        margin: { left: 14, right: 14 },
+      });
+      y = doc.lastAutoTable.finalY + 12;
+    }
+
+    // Layering Chains
+    doc.setFontSize(12);
+    doc.setTextColor(88, 166, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Layering Chains', 14, y);
+    y += 4;
+    if (layering.length === 0) {
+      doc.setFontSize(9); doc.setTextColor(150, 150, 150); doc.setFont('helvetica', 'normal');
+      doc.text('No layering chains detected', 14, y + 6);
+    } else {
+      autoTable(doc, {
+        startY: y,
+        head: [['Origin', 'Hop 1', 'Hop 2', 'Hop 3', 'Destination']],
+        body: layering.map(l => [l.origin, l.hop1, l.hop2, l.hop3, l.destination]),
+        theme: 'grid',
+        headStyles: { fillColor: [88, 166, 255], textColor: 255 },
+        alternateRowStyles: { fillColor: [240, 248, 255] },
+        margin: { left: 14, right: 14 },
+      });
+    }
+
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text('AML Detection System - Confidential', 14, doc.internal.pageSize.getHeight() - 8);
+      doc.text('Page ' + i + ' of ' + pageCount, pageWidth - 14, doc.internal.pageSize.getHeight() - 8, { align: 'right' });
+    }
+
+    doc.save('fraud-report-' + new Date().toISOString().split('T')[0] + '.pdf');
+  };
   return (
     <div className='page'>
       <h1 style={{color:'#e94560'}}>Fraud Analysis Report</h1>
@@ -63,7 +192,7 @@ function ReportPage() {
         <div className='card'><h3>TOTAL PATTERNS</h3><p>{summary.total_patterns||0}</p></div>
       </div>
       <div style={{marginTop:'30px'}}>
-        <button style={tabStyle('table')} onClick={()=>setActiveTab('table')}>Table View</button>
+        <button onClick={exportPDF} style={{padding:'10px 20px',background:'#3fb950',color:'white',border:'none',borderRadius:'6px',cursor:'pointer',fontSize:'14px',fontWeight:'bold',marginRight:'10px'}}>📄 Export PDF</button><button style={tabStyle('table')} onClick={()=>setActiveTab('table')}>Table View</button>
         <button style={tabStyle('graph')} onClick={()=>setActiveTab('graph')}>Graph View</button>
       </div>
       {activeTab==='table' && (

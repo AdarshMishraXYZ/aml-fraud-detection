@@ -24,8 +24,11 @@ function Navbar({ user, onLogout }) {
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) {
-            setAlerts(data.slice().reverse().slice(0, 10));
-            setUnreadCount(data.filter(a => a.status === "open").length);
+            const sorted = data.slice().reverse().slice(0, 10);
+            setAlerts(sorted);
+            const lastSeen = parseInt(localStorage.getItem("lastSeenAlertId") || "0");
+            const unread = data.filter(a => a.id > lastSeen).length;
+            setUnreadCount(unread);
           }
         })
         .catch(() => {});
@@ -53,14 +56,10 @@ function Navbar({ user, onLogout }) {
   };
 
   const markAllRead = () => {
-    const token = localStorage.getItem("token");
-    alerts.filter(a => a.status === "open").forEach(a => {
-      fetch(API + "/api/alerts/" + a.id + "/review", {
-        method: "PUT",
-        headers: { Authorization: "Bearer " + token }
-      }).catch(() => {});
-    });
-    setAlerts(prev => prev.map(a => ({ ...a, status: "reviewed" })));
+    if (alerts.length > 0) {
+      const maxId = Math.max(...alerts.map(a => a.id));
+      localStorage.setItem("lastSeenAlertId", maxId.toString());
+    }
     setUnreadCount(0);
   };
 
@@ -81,7 +80,7 @@ function Navbar({ user, onLogout }) {
       </div>
       <div style={{display:"flex",alignItems:"center",gap:"15px"}}>
         <div ref={dropdownRef} style={{position:"relative"}}>
-          <button onClick={() => setShowNotifications(!showNotifications)}
+          <button onClick={() => { setShowNotifications(!showNotifications); if (alerts.length > 0) { const maxId = Math.max(...alerts.map(a => a.id)); localStorage.setItem("lastSeenAlertId", maxId.toString()); setUnreadCount(0); } }}
             style={{background:"none",border:"none",cursor:"pointer",position:"relative",padding:"6px",fontSize:"20px"}}>
             🔔
             {unreadCount > 0 && (
