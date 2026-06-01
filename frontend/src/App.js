@@ -44,6 +44,7 @@ function App() {
         <Route path="/simulator" element={<Simulator />} />
         <Route path="*" element={<Navigate to="/" />} />
         <Route path="/users" element={<UserManagement />} />
+        <Route path="/suspect/:name" element={<SuspectProfile />} />
       </Routes>
     </Router>
   );
