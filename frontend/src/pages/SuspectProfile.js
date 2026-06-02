@@ -14,7 +14,7 @@ function SuspectProfile() {
   useEffect(() => {
     Promise.all([
       fetch(API + "/api/transactions").then(r => r.json()),
-      fetch(API + "/api/graph/network/" + encodeURIComponent(name)).then(r => r.json()),
+      Promise.resolve({transactions:[]}),
       fetch(API + "/api/graph/full-report").then(r => r.json())
     ]).then(([allTx, net, rep]) => {
       const personTx = Array.isArray(allTx) ? allTx.filter(t => t.sender === name || t.receiver === name) : [];
