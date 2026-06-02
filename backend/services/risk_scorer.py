@@ -1,68 +1,66 @@
 """
-Risk scorer — combines rule-based flags and ML probability into a 0–100 score.
-
-Score bands (kept in sync with fraud_model.py thresholds):
-  81–100  CRITICAL
-  61–80   HIGH
-  31–60   MEDIUM
-   0–30   LOW
+Risk scorer — combines rule-based flags and ML probability into a 0-100 score.
+Score bands:
+  81-100  CRITICAL
+  61-80   HIGH
+  31-60   MEDIUM
+   0-30   LOW
 """
 
-SUSPICIOUS_RECEIVERS = ["Unknown", "Anonymous", "Offshore_Account", "Test", "Fake"]
-
+SUSPICIOUS_RECEIVERS = [
+    "Unknown", "Anonymous", "Offshore_Account",
+    "Test", "Fake", "Shell_Corp_1", "Shell_Corp_2", "Unknown_Entity"
+]
 
 def calculate_risk_score(
     amount: float,
     sender: str,
     receiver: str,
-    ml_probability: float,   # 0–100
+    ml_probability: float,
     fraud_status: str
 ) -> dict:
 
     score = 0
     reasons = []
 
-    # ── 1. Rule-based component (max 35 pts) ──────────────────────────────
-    if fraud_status == "flagged":
-        score += 35
-        reasons.append("Large amount detected (>₹50,000)")
-    elif fraud_status == "suspicious":
-        score += 25
-        reasons.append("Suspicious receiver or round-number pattern")
-    elif fraud_status == "review":
-        score += 15
-        reasons.append("Medium-risk amount (₹20,000–₹50,000)")
-    elif fraud_status == "rejected":
-        score += 20
-        reasons.append("Self-transfer rejected")
-
-    # ── 2. ML component (max 40 pts) ──────────────────────────────────────
-    # FIX: Previously used (ml_probability / 100) * 40 which was correct,
-    #      but thresholds below were inconsistent with fraud_model.py.
+    # ML component (40 pts max)
     ml_score = round((ml_probability / 100) * 40)
     score += ml_score
     if ml_probability >= 70:
         reasons.append(f"ML model: {ml_probability:.0f}% fraud probability (HIGH)")
-    elif ml_probability >= 35:
+    elif ml_probability >= 40:
         reasons.append(f"ML model: {ml_probability:.0f}% fraud probability (MEDIUM)")
 
-    # ── 3. Pattern bonuses (max 25 pts) ───────────────────────────────────
-    # Round-number structuring
+    # Amount-based scoring (30 pts max)
+    if amount > 500000:
+        score += 30
+        reasons.append("Extremely large transaction (>₹5,00,000)")
+    elif amount > 200000:
+        score += 22
+        reasons.append("Very large transaction (>₹2,00,000)")
+    elif amount > 100000:
+        score += 15
+        reasons.append("Large transaction (>₹1,00,000)")
+    elif amount > 50000:
+        score += 8
+        reasons.append("Medium-large transaction (>₹50,000)")
+
+    # Suspicious receiver (15 pts)
+    if receiver in SUSPICIOUS_RECEIVERS:
+        score += 15
+        reasons.append(f"Receiver '{receiver}' is a flagged entity")
+
+    # Round number structuring (10 pts)
     if amount % 10000 == 0 and amount >= 10000:
         score += 10
         reasons.append("Suspicious round-number structuring")
 
-    # Known suspicious receiver
-    if receiver in SUSPICIOUS_RECEIVERS:
-        score += 10
-        reasons.append(f"Receiver '{receiver}' is a flagged entity")
+    # Self transfer (20 pts)
+    if sender == receiver:
+        score += 20
+        reasons.append("Self-transfer detected")
 
-    # Extremely large amount
-    if amount > 100000:
-        score += 5
-        reasons.append("Extremely large transaction (>₹1,00,000)")
-
-    # ── Cap & classify ─────────────────────────────────────────────────────
+    # Cap at 100
     score = min(round(score), 100)
 
     if score >= 81:

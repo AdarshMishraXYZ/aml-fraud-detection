@@ -63,7 +63,7 @@ async def create_transaction(transaction: Transaction, db: Session = Depends(get
         "sender": transaction.sender,
         "receiver": transaction.receiver,
         "amount": transaction.amount
-    })
+    }, db)
 
     ml_result = predict_fraud(
         amount=transaction.amount,
