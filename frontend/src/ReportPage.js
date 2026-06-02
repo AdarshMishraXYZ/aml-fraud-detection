@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import ForceGraph2D from 'react-force-graph-2d';
@@ -12,6 +13,7 @@ function ReportPage() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('table');
   const graphRef = useRef();
+  const navigate = useNavigate();
   
 
   useEffect(() => {
@@ -201,10 +203,10 @@ function ReportPage() {
         <div style={{border:'1px solid #30363d',borderRadius:'0 8px 8px 8px',padding:'20px'}}>
           <h2 style={{borderLeft:'4px solid #f85149',paddingLeft:'12px'}}>Circular Fraud Rings</h2>
           <table><thead><tr><th>PERSON 1</th><th>PERSON 2</th><th>PERSON 3</th><th>AMOUNT 1</th><th>AMOUNT 2</th><th>AMOUNT 3</th></tr></thead>
-          <tbody>{circular.length===0?<tr><td colSpan='6' style={{color:'#666',textAlign:'center'}}>No circular rings detected yet</td></tr>:circular.map((c,i)=><tr key={i}><td className='flagged'>{c.person1}</td><td className='flagged'>{c.person2}</td><td className='flagged'>{c.person3}</td><td>Rs{Number(c.amount1).toLocaleString()}</td><td>Rs{Number(c.amount2).toLocaleString()}</td><td>Rs{Number(c.amount3).toLocaleString()}</td></tr>)}</tbody></table>
+          <tbody>{circular.length===0?<tr><td colSpan='6' style={{color:'#666',textAlign:'center'}}>No circular rings detected yet</td></tr>:circular.map((c,i)=><tr key={i}><td className='flagged' style={{cursor:'pointer',textDecoration:'underline'}} onClick={()=>navigate('/suspect/'+c.person1)}>{c.person1}</td><td className='flagged' style={{cursor:'pointer',textDecoration:'underline'}} onClick={()=>navigate('/suspect/'+c.person2)}>{c.person2}</td><td className='flagged' style={{cursor:'pointer',textDecoration:'underline'}} onClick={()=>navigate('/suspect/'+c.person3)}>{c.person3}</td><td>Rs{Number(c.amount1).toLocaleString()}</td><td>Rs{Number(c.amount2).toLocaleString()}</td><td>Rs{Number(c.amount3).toLocaleString()}</td></tr>)}</tbody></table>
           <h2 style={{borderLeft:'4px solid #e3b341',paddingLeft:'12px',marginTop:'20px'}}>Mule Accounts</h2>
           <table><thead><tr><th>ACCOUNT</th><th>NUMBER OF SENDERS</th><th>TOTAL RECEIVED</th></tr></thead>
-          <tbody>{mules.length===0?<tr><td colSpan='3' style={{color:'#666',textAlign:'center'}}>No mule accounts detected yet</td></tr>:mules.map((m,i)=><tr key={i}><td className='suspicious'>{m.mule_account}</td><td>{m.number_of_senders}</td><td>Rs{Number(m.total_amount).toLocaleString()}</td></tr>)}</tbody></table>
+          <tbody>{mules.length===0?<tr><td colSpan='3' style={{color:'#666',textAlign:'center'}}>No mule accounts detected yet</td></tr>:mules.map((m,i)=><tr key={i}><td className='suspicious' style={{cursor:'pointer',textDecoration:'underline'}} onClick={()=>navigate('/suspect/'+m.mule_account)}>{m.mule_account}</td><td>{m.number_of_senders}</td><td>Rs{Number(m.total_amount).toLocaleString()}</td></tr>)}</tbody></table>
           <h2 style={{borderLeft:'4px solid #58a6ff',paddingLeft:'12px',marginTop:'20px'}}>Layering Chains</h2>
           <table><thead><tr><th>ORIGIN</th><th>HOP 1</th><th>HOP 2</th><th>HOP 3</th><th>DESTINATION</th></tr></thead>
           <tbody>{layering.length===0?<tr><td colSpan='5' style={{color:'#666',textAlign:'center'}}>No layering chains detected yet</td></tr>:layering.map((l,i)=><tr key={i}><td className='flagged'>{l.origin}</td><td>{l.hop1}</td><td>{l.hop2}</td><td>{l.hop3}</td><td className='flagged'>{l.destination}</td></tr>)}</tbody></table>
