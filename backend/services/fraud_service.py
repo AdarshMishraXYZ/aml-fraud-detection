@@ -1,4 +1,3 @@
-from ml.fraud_model import predict_fraud
 from datetime import datetime
 
 SUSPICIOUS_RECEIVERS = [
@@ -12,26 +11,33 @@ def check_fraud(transaction: dict, db=None) -> str:
     receiver = transaction["receiver"]
     hour = datetime.now().hour
 
-    # Get sender transaction count from DB if available
-    sender_tx_count = 1
-    if db:
-        from models.transaction import TransactionDB
-        sender_tx_count = db.query(TransactionDB).filter(
-            TransactionDB.sender == sender
-        ).count() + 1
-
     # Self transfer - always rejected
     if sender == receiver:
         return "rejected"
 
-    # Get ML probability
-    ml_result = predict_fraud(
-        amount=amount,
-        receiver=receiver,
-        sender_tx_count=sender_tx_count,
-        hour_of_day=hour
-    )
-    ml_prob = ml_result["fraud_probability"]
+    # Get sender transaction count from DB if available
+    sender_tx_count = 1
+    if db:
+        try:
+            from models.transaction import TransactionDB
+            sender_tx_count = db.query(TransactionDB).filter(
+                TransactionDB.sender == sender
+            ).count() + 1
+        except:
+            sender_tx_count = 1
+
+    # Import ML model here to avoid circular imports
+    try:
+        from ml.fraud_model import predict_fraud
+        ml_result = predict_fraud(
+            amount=amount,
+            receiver=receiver,
+            sender_tx_count=sender_tx_count,
+            hour_of_day=hour
+        )
+        ml_prob = ml_result["fraud_probability"]
+    except:
+        ml_prob = 0
 
     # Calculate combined risk score
     score = 0
@@ -39,8 +45,7 @@ def check_fraud(transaction: dict, db=None) -> str:
     # ML component (50% weight)
     score += (ml_prob / 100) * 50
 
-    # Rule-based component (50% weight)
-    # Large amount
+    # Amount-based rules
     if amount > 500000:
         score += 25
     elif amount > 200000:
@@ -58,11 +63,11 @@ def check_fraud(transaction: dict, db=None) -> str:
     if amount % 10000 == 0 and amount >= 10000:
         score += 8
 
-    # Off-hours transaction (midnight to 5am)
-    if hour >= 0 and hour <= 5:
+    # Off-hours transaction
+    if 0 <= hour <= 5:
         score += 5
 
-    # Determine status based on combined score
+    # Determine status
     if score >= 60:
         return "flagged"
     elif score >= 40:
