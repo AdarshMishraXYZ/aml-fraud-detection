@@ -33,6 +33,7 @@ function TransactionDetail() {
   const shap = detail.shap_explanation;
   const anomaly = detail.anomaly_detection;
   const network = detail.sender_network;
+  const graph = detail.graph_intelligence || {};
 
   const statusColor = {
     flagged: '#f85149',
@@ -112,6 +113,31 @@ function TransactionDetail() {
         </div>
       </div>
 
+
+      <div style={{background: (graph.graph_risk_score||0) > 0 ? 'rgba(248,81,73,0.05)' : 'rgba(63,185,80,0.05)', padding:'20px', borderRadius:'10px', marginTop:'20px', border: (graph.graph_risk_score||0) > 0 ? '1px solid #f85149' : '1px solid #3fb950'}}>
+        <h2 style={{margin:'0 0 15px 0', color: (graph.graph_risk_score||0) > 0 ? '#f85149' : '#3fb950', fontSize:'15px'}}>
+          Graph Intelligence Score: {graph.graph_risk_score||0}/100
+        </h2>
+        <div style={{display:'flex',gap:'15px',marginBottom:'15px',flexWrap:'wrap'}}>
+          <div style={{background:graph.sender_in_circular_ring?'rgba(248,81,73,0.2)':'rgba(63,185,80,0.1)',padding:'10px 15px',borderRadius:'8px',border:graph.sender_in_circular_ring?'1px solid #f85149':'1px solid #3fb950'}}>
+            <p style={{margin:0,fontSize:'12px',color:'#aaa'}}>Circular Ring</p>
+            <p style={{margin:0,fontWeight:'bold',color:graph.sender_in_circular_ring?'#f85149':'#3fb950'}}>{graph.sender_in_circular_ring?'YES':'NO'}</p>
+          </div>
+          <div style={{background:graph.receiver_is_mule?'rgba(248,81,73,0.2)':'rgba(63,185,80,0.1)',padding:'10px 15px',borderRadius:'8px',border:graph.receiver_is_mule?'1px solid #f85149':'1px solid #3fb950'}}>
+            <p style={{margin:0,fontSize:'12px',color:'#aaa'}}>Mule Receiver</p>
+            <p style={{margin:0,fontWeight:'bold',color:graph.receiver_is_mule?'#f85149':'#3fb950'}}>{graph.receiver_is_mule?'YES':'NO'}</p>
+          </div>
+          <div style={{background:graph.in_layering_chain?'rgba(248,81,73,0.2)':'rgba(63,185,80,0.1)',padding:'10px 15px',borderRadius:'8px',border:graph.in_layering_chain?'1px solid #f85149':'1px solid #3fb950'}}>
+            <p style={{margin:0,fontSize:'12px',color:'#aaa'}}>Layering Chain</p>
+            <p style={{margin:0,fontWeight:'bold',color:graph.in_layering_chain?'#f85149':'#3fb950'}}>{graph.in_layering_chain?'YES':'NO'}</p>
+          </div>
+        </div>
+        {graph.graph_flags&&graph.graph_flags.length>0&&(
+          <div style={{background:'rgba(248,81,73,0.1)',borderRadius:'6px',padding:'10px'}}>
+            {graph.graph_flags.map((flag,i)=><p key={i} style={{margin:'4px 0',color:'#f85149',fontSize:'13px'}}>Warning: {flag}</p>)}
+          </div>
+        )}
+      </div>
       <div style={{background:'#161b22', padding:'20px', borderRadius:'10px', marginTop:'20px', border:'1px solid #21262d'}}>
         <h2 style={{background:'none', border:'none', padding:'0', marginBottom:'15px', color:'#58a6ff', fontSize:'15px'}}>
           🔗 Sender Network ({network.length} connections)
