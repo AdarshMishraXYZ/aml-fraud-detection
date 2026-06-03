@@ -31,4 +31,7 @@ Thumbs.db
 *.log
 
 # Data files
-data/
+data/*.exe
+*.msi
+*.zip
+write_navbar.js
