@@ -34,6 +34,9 @@ function TransactionDetail() {
   const anomaly = detail.anomaly_detection;
   const network = detail.sender_network;
   const graph = detail.graph_intelligence || {};
+  const combinedRisk = Math.min(100, (t.ml_fraud_probability || 0) * 0.4 + (graph.graph_risk_score || 0));
+  const riskLevel = combinedRisk >= 75 ? "CRITICAL" : combinedRisk >= 50 ? "HIGH" : combinedRisk >= 25 ? "MEDIUM" : "LOW";
+  const riskColor = combinedRisk >= 75 ? "#f85149" : combinedRisk >= 50 ? "#e94560" : combinedRisk >= 25 ? "#e3b341" : "#3fb950";
 
   const statusColor = {
     flagged: '#f85149',
@@ -63,6 +66,10 @@ function TransactionDetail() {
         <div className="card red">
           <h3>ML Risk</h3>
           <p style={{fontSize:'18px'}}>{t.ml_fraud_probability ? t.ml_fraud_probability + '%' : 'N/A'}</p>
+        </div>
+        <div className="card" style={{borderTopColor: riskColor}}>
+          <h3>COMBINED RISK</h3>
+          <p style={{fontSize:"16px", color: riskColor}}>{Math.round(combinedRisk)}% {riskLevel}</p>
         </div>
         <div className={`card ${anomaly.is_anomaly ? 'red' : 'green'}`}>
           <h3>Anomaly</h3>

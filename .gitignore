@@ -35,3 +35,5 @@ data/*.exe
 *.msi
 *.zip
 write_navbar.js
+*.exe
+*.msi
