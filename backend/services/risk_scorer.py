@@ -61,6 +61,20 @@ def calculate_risk_score(
         score += 20
         reasons.append("Self-transfer detected")
 
+    # Graph intelligence component
+    if graph_risk_score >= 40:
+        score += 40
+        reasons.append("Graph: Sender in circular fraud ring")
+    elif graph_risk_score >= 35:
+        score += 35
+        reasons.append("Graph: Receiver is known mule account")
+    elif graph_risk_score >= 25:
+        score += 25
+        reasons.append("Graph: Part of layering chain")
+    elif graph_risk_score > 0:
+        score += graph_risk_score
+        reasons.append("Graph risk detected")
+
     # Cap at 100
     score = min(round(score), 100)
 
