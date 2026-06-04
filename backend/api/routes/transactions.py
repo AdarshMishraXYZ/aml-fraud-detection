@@ -110,7 +110,9 @@ async def create_transaction(transaction: Transaction, db: Session = Depends(get
         if _in_layer: _graph_score += 25
         graph_intel = {"sender_in_circular_ring": _in_circular, "receiver_is_mule": _is_mule, "in_layering_chain": _in_layer, "graph_risk_score": _graph_score, "graph_flags": []}
     except Exception as e:
-        print(f"[Graph] {e}")
+        print(f"[Graph ERROR] {e}")
+        import traceback
+        traceback.print_exc()
         graph_intel = {"sender_in_circular_ring": False, "receiver_is_mule": False, "in_layering_chain": False, "graph_risk_score": 0, "graph_flags": []}
 
     ml_result = predict_fraud(
