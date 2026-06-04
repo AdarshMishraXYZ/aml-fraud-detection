@@ -93,6 +93,26 @@ async def create_transaction(transaction: Transaction, db: Session = Depends(get
         "amount": transaction.amount
     }, db)
 
+    # Graph intelligence for hybrid scoring
+    try:
+        from database_neo4j import detect_circular_transactions, detect_mule_accounts, detect_layering
+        circular = detect_circular_transactions()
+        mules = detect_mule_accounts()
+        layering = detect_layering()
+        _sender = transaction.sender
+        _receiver = transaction.receiver
+        _in_circular = any(c["person1"]==_sender or c["person2"]==_sender or c["person3"]==_sender for c in circular)
+        _is_mule = any(m["mule_account"]==_receiver for m in mules)
+        _in_layer = any(l["origin"]==_sender or l["destination"]==_receiver for l in layering)
+        _graph_score = 0
+        if _in_circular: _graph_score += 40
+        if _is_mule: _graph_score += 35
+        if _in_layer: _graph_score += 25
+        graph_intel = {"sender_in_circular_ring": _in_circular, "receiver_is_mule": _is_mule, "in_layering_chain": _in_layer, "graph_risk_score": _graph_score, "graph_flags": []}
+    except Exception as e:
+        print(f"[Graph] {e}")
+        graph_intel = {"sender_in_circular_ring": False, "receiver_is_mule": False, "in_layering_chain": False, "graph_risk_score": 0, "graph_flags": []}
+
     ml_result = predict_fraud(
         amount=transaction.amount,
         receiver=transaction.receiver
