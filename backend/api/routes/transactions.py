@@ -103,7 +103,8 @@ async def create_transaction(transaction: Transaction, db: Session = Depends(get
         sender=transaction.sender,
         receiver=transaction.receiver,
         ml_probability=ml_result["fraud_probability"],
-        fraud_status=fraud_status
+        fraud_status=fraud_status,
+        graph_risk_score=graph_intel.get("graph_risk_score", 0)
     )
 
     new_transaction = TransactionDB(

@@ -17,7 +17,8 @@ def calculate_risk_score(
     sender: str,
     receiver: str,
     ml_probability: float,
-    fraud_status: str
+    fraud_status: str,
+    graph_risk_score: int = 0
 ) -> dict:
 
     score = 0
