@@ -35,6 +35,33 @@ def get_transaction_detail(transaction_id: int, db: Session = Depends(get_db)):
 
     network = get_fraud_network(transaction.sender)
 
+
+    # Graph intelligence
+    try:
+        from database_neo4j import detect_circular_transactions, detect_mule_accounts, detect_layering
+        circular = detect_circular_transactions()
+        mules = detect_mule_accounts()
+        layering = detect_layering()
+        sender = transaction.sender
+        receiver = transaction.receiver
+        in_circular = any(c["person1"]==sender or c["person2"]==sender or c["person3"]==sender for c in circular)
+        receiver_is_mule = any(m["mule_account"]==receiver for m in mules)
+        in_layering = any(l["origin"]==sender or l["destination"]==receiver for l in layering)
+        graph_risk_score = 0
+        graph_flags = []
+        if in_circular:
+            graph_risk_score += 40
+            graph_flags.append("Sender is part of a circular fraud ring")
+        if receiver_is_mule:
+            graph_risk_score += 35
+            graph_flags.append("Receiver is a known mule account")
+        if in_layering:
+            graph_risk_score += 25
+            graph_flags.append("Transaction is part of a layering chain")
+        graph_intel = {"sender_in_circular_ring": in_circular, "receiver_is_mule": receiver_is_mule, "in_layering_chain": in_layering, "graph_risk_score": graph_risk_score, "graph_flags": graph_flags}
+    except Exception as e:
+        print(f"[Graph Intel Error] {e}")
+        graph_intel = {"sender_in_circular_ring": False, "receiver_is_mule": False, "in_layering_chain": False, "graph_risk_score": 0, "graph_flags": []}
     return {
         "transaction": {
             "id": transaction.id,
@@ -47,7 +74,8 @@ def get_transaction_detail(transaction_id: int, db: Session = Depends(get_db)):
         },
         "shap_explanation": explanation,
         "anomaly_detection": anomaly,
-        "sender_network": network
+        "sender_network": network,
+        "graph_intelligence": graph_intel
     }
 
 @router.get("/transactions/{transaction_id}")
