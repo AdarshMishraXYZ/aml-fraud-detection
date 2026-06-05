@@ -1,10 +1,14 @@
+
+
+
+
 # 🔍 AML Fraud Detection System
 A full-stack Anti-Money Laundering (AML) detection system that uses machine learning to identify fraudulent transactions in real time. Built with a React frontend, FastAPI backend, PostgreSQL database, and an XGBoost ML model trained on AML transaction patterns.
 
 **🌐 Live Demo:** [aml-fraud-detection.vercel.app](https://aml-fraud-detection.vercel.app)
 
 # PROJECT VIDEO 
-
+https://github.com/user-attachments/assets/c43fb229-d0dc-40f3-aed0-729fd706b723
 
 ## ✨ Features
 
